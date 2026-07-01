@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Refreshing Breeze - リアルタイムデータモニター</title>
+  <!-- p5.jsの読み込み -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
   <style>
     body {
@@ -43,124 +44,128 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// データの管理用変数
 let dbTotalClicks = 0;       
 let displayTotalClicks = 0;  
 let lastActiveTime = 0;      
 let particles = [];
 
-function setup() {
-  createCanvas(600, 400);
-  noStroke();
+// --- p5.jsを安全に起動するための設定（インスタンスモード） ---
+const sketch = (p) => {
 
-  // ★Firebaseのリアルタイムリスナーを設置
-  onSnapshot(doc(db, "game_data", "clicks"), (doc) => {
-    if (doc.exists()) {
-      dbTotalClicks = doc.data().total;
-      lastActiveTime = millis();
-      // データ更新時に弾ける爽やかなパーティクルを生成
-      for(let i=0; i<15; i++) {
-        particles.push(new DataParticle(width/2, height/2 + 20));
+  p.setup = () => {
+    p.createCanvas(600, 400);
+    p.noStroke();
+
+    // ★Firebaseのリアルタイムリスナーを設置
+    onSnapshot(doc(db, "game_data", "clicks"), (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        dbTotalClicks = docSnapshot.data().total;
+        lastActiveTime = p.millis();
+        // データ更新時に弾ける爽やかなパーティクルを生成
+        for(let i=0; i<15; i++) {
+          particles.push(new DataParticle(p.width/2, p.height/2 + 20));
+        }
       }
+    });
+  };
+
+  p.draw = () => {
+    drawBackground();
+
+    // 数値をなめらかにアニメーションさせて加算
+    displayTotalClicks = p.lerp(displayTotalClicks, dbTotalClicks, 0.1);
+
+    // タイトル表示
+    p.textAlign(p.CENTER, p.TOP);
+    p.fill(60, 100, 120);
+    p.textSize(20);
+    p.text("地域共創デザイン実習 - ユーザー行動分析", p.width / 2, 40);
+    
+    p.textSize(14);
+    p.fill(100, 140, 160);
+    p.text("REAL-TIME CLICK COUNTER", p.width / 2, 70);
+
+    // 中央のデータ表示カード
+    drawDataCard();
+
+    // パーティクルの描画
+    for (let i = particles.length - 1; i >= 0; i--) {
+      particles[i].update();
+      particles[i].display();
+      if (particles[i].isDead()) particles.splice(i, 1);
     }
-  });
-}
+  };
 
-function draw() {
-  drawBackground();
-
-  // 数値をなめらかにアニメーションさせて加算
-  displayTotalClicks = lerp(displayTotalClicks, dbTotalClicks, 0.1);
-
-  // タイトル表示
-  textAlign(CENTER, TOP);
-  fill(60, 100, 120);
-  textSize(20);
-  text("地域共創デザイン実習 - ユーザー行動分析", width / 2, 40);
-  
-  textSize(14);
-  fill(100, 140, 160);
-  text("REAL-TIME CLICK COUNTER", width / 2, 70);
-
-  // 中央のデータ表示カード
-  drawDataCard();
-
-  // パーティクルの描画
-  for (let i = particles.length - 1; i >= 0; i--) {
-    particles[i].update();
-    particles[i].display();
-    if (particles[i].isDead()) particles.splice(i, 1);
+  function drawBackground() {
+    for (let i = 0; i <= p.height; i++) {
+      let inter = p.map(i, 0, p.height, 0, 1);
+      let c1 = p.color(240, 255, 252);
+      let c2 = p.color(210, 238, 245);
+      p.stroke(p.lerpColor(c1, c2, inter));
+      p.line(0, i, p.width, i);
+    }
   }
-}
 
-function drawBackground() {
-  for (let i = 0; i <= height; i++) {
-    let inter = map(i, 0, height, 0, 1);
-    let c1 = color(240, 255, 252);
-    let c2 = color(210, 238, 245);
-    stroke(lerpColor(c1, c2, inter));
-    line(0, i, width, i);
+  function drawDataCard() {
+    p.push();
+    p.translate(p.width/2, p.height/2 + 20);
+    
+    // データ受信時のポップアップエフェクト
+    let timeDiff = p.millis() - lastActiveTime;
+    let scaleFactor = 1.0 + p.sin(timeDiff * 0.05) * 0.05 * p.exp(-timeDiff * 0.005);
+    if (scaleFactor < 1.0 || isNaN(scaleFactor)) scaleFactor = 1.0;
+    p.scale(scaleFactor);
+
+    // カード本体
+    p.noStroke();
+    p.fill(255, 255, 255, 180);
+    p.rect(-180, -70, 360, 140, 12);
+    
+    // 外枠
+    p.stroke(150, 230, 220, 150);
+    p.strokeWeight(2);
+    p.noFill();
+    p.rect(-180, -70, 360, 140, 12);
+
+    // カウンターテキスト
+    p.noStroke();
+    p.fill(40, 80, 100);
+    p.textAlign(p.CENTER, p.CENTER);
+    p.textSize(54);
+    p.text(Math.round(displayTotalClicks).toLocaleString() + " CLICKS", 0, 0);
+    p.pop();
   }
-}
 
-function drawDataCard() {
-  push();
-  translate(width/2, height/2 + 20);
-  
-  // データ受信時のポップアップエフェクト
-  let timeDiff = millis() - lastActiveTime;
-  let scaleFactor = 1.0 + sin(timeDiff * 0.05) * 0.05 * exp(-timeDiff * 0.005);
-  if (scaleFactor < 1.0 || isNaN(scaleFactor)) scaleFactor = 1.0;
-  scale(scaleFactor);
-
-  // カード本体
-  noStroke();
-  fill(255, 255, 255, 180);
-  rect(-180, -70, 360, 140, 12);
-  
-  // 外枠
-  stroke(150, 230, 220, 150);
-  strokeWeight(2);
-  noFill();
-  rect(-180, -70, 360, 140, 12);
-
-  // カウンターテキスト
-  noStroke();
-  fill(40, 80, 100);
-  textAlign(CENTER, CENTER);
-  textSize(54);
-  text(Math.round(displayTotalClicks).toLocaleString() + " CLICKS", 0, 0);
-  pop();
-}
-
-class DataParticle {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-    let angle = random(TWO_PI);
-    let speed = random(2, 7);
-    this.vx = cos(angle) * speed;
-    this.vy = sin(angle) * speed;
-    this.alpha = 255;
-    this.size = random(6, 12);
+  class DataParticle {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+      let angle = p.random(p.TWO_PI);
+      let speed = p.random(2, 7);
+      this.vx = p.cos(angle) * speed;
+      this.vy = p.sin(angle) * speed;
+      this.alpha = 255;
+      this.size = p.random(6, 12);
+    }
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      this.vx *= 0.96;
+      this.vy *= 0.96;
+      this.alpha -= 5;
+    }
+    display() {
+      p.noStroke();
+      p.fill(80, 200, 220, this.alpha);
+      p.ellipse(this.x, this.y, this.size);
+    }
+    isDead() { return this.alpha <= 0; }
   }
-  update() {
-    this.x += this.vx;
-    this.y += this.vy;
-    this.vx *= 0.96;
-    this.vy *= 0.96;
-    this.alpha -= 5;
-  }
-  display() {
-    noStroke();
-    fill(80, 200, 220, this.alpha);
-    ellipse(this.x, this.y, this.size);
-  }
-  isDead() { return this.alpha <= 0; }
-}
+};
 
-// p5.jsのシステムに明示的に登録して起動する処理
-window.setup = setup;
-window.draw = draw;
+// p5.jsを「インスタンスモード」で安全に起動
+new p5(sketch);
 </script>
 
 </body>

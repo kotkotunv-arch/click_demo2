@@ -29,7 +29,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// Firebaseの設定情報を反映（ゲーム側と同じものを指定）
+// Firebaseの設定情報を反映
 const firebaseConfig = {
     apiKey: "AIzaSyCH9fcNnpgVnqBJeTNuG11QPr8uTn28aMc",
     authDomain: "click-4d2a0.firebaseapp.com",
@@ -38,14 +38,10 @@ const firebaseConfig = {
     messagingSenderId: "55099695962",
     appId: "1:55099695962:web:9ea37f3aa992b378e24963",
     measurementId: "G-6XJBR4H4QK"
-  };
+};
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
-// p5.jsのシステムに関数をバインド
-window.setup = setup;
-window.draw = draw;
 
 let dbTotalClicks = 0;       
 let displayTotalClicks = 0;  
@@ -161,6 +157,11 @@ class DataParticle {
   }
   isDead() { return this.alpha <= 0; }
 }
+
+// p5.jsのシステムに明示的に登録して起動する処理
+window.setup = setup;
+window.draw = draw;
+new p5(); 
 </script>
 
 </body>

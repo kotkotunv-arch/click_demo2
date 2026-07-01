@@ -28,9 +28,9 @@
 <script type="module">
 // Firebaseの読み込み
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { initializeFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// Firebaseの設定情報を反映
+// Firebaseの設定情報
 const firebaseConfig = {
     apiKey: "AIzaSyCH9fcNnpgVnqBJeTNuG11QPr8uTn28aMc",
     authDomain: "click-4d2a0.firebaseapp.com",
@@ -42,7 +42,11 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+
+// ★ここが超重要！作成したデータベースID「click」を明示的に指定して接続します
+const db = initializeFirestore(app, {
+  databaseId: 'click'
+});
 
 // データの管理用変数
 let dbTotalClicks = 0;       
@@ -57,7 +61,7 @@ const sketch = (p) => {
     p.createCanvas(600, 400);
     p.noStroke();
 
-    // ★Firebaseのリアルタイムリスナーを設置
+    // Firebaseのリアルタイムリスナーを設置
     onSnapshot(doc(db, "game_data", "clicks"), (docSnapshot) => {
       if (docSnapshot.exists()) {
         dbTotalClicks = docSnapshot.data().total;

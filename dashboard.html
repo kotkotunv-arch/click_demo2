@@ -43,7 +43,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// ★ここが超重要！作成したデータベースID「click」を明示的に指定して接続します
+// データベースID「click」を指定
 const db = initializeFirestore(app, {
   databaseId: 'click'
 });
@@ -61,8 +61,8 @@ const sketch = (p) => {
     p.createCanvas(600, 400);
     p.noStroke();
 
-    // Firebaseのリアルタイムリスナーを設置
-    onSnapshot(doc(db, "game_data", "clicks"), (docSnapshot) => {
+    // ★宛先をゲームと完全に同じ「click」に変更しました！
+    onSnapshot(doc(db, "game_data", "click"), (docSnapshot) => {
       if (docSnapshot.exists()) {
         dbTotalClicks = docSnapshot.data().total;
         lastActiveTime = p.millis();
@@ -168,7 +168,6 @@ const sketch = (p) => {
   }
 };
 
-// p5.jsを「インスタンスモード」で安全に起動
 new p5(sketch);
 </script>
 
